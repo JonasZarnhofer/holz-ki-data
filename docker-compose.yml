@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:15.1-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2024-07-13T01-46-15Z
+    command: server --console-address ":9001" /data
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - minio:/data
+      - ${PATH_CERT_FILE}:/opt/minio/certs/public.crt:ro
+      - ${PATH_CERT_PRIVATE_KEY}:/opt/minio/certs/private.key:ro
+      - ${PATH_CERT_CA}:/opt/minio/certs/CAs/CA.crt:ro
+
+  api:
+    build: ./src
+    command: |
+      bash -c 'while !</dev/tcp/db/5432; do sleep 1; done; uvicorn api.main:app --reload --workers 1 --host 0.0.0.0 --port 8000'
+    volumes:
+      - ./src:/usr/src/
+      - ${PATH_CERT_CA}:/usr/src/certs/public.crt:ro
+    ports:
+      - 8002:8000
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}
+      - MINIO_HOST=minio:${MINIO_PORT}
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+
+    depends_on:
+      - db
+      - minio
+
+volumes:
+  minio:
+  postgres_data:
