@@ -36,7 +36,6 @@ services:
       bash -c 'while !</dev/tcp/db/5432; do sleep 1; done; uvicorn api.main:app --reload --workers 1 --host 0.0.0.0 --port 8000'
     volumes:
       - ./src:/usr/src/
-      - ${PATH_CERT_CA}:/usr/src/certs/public.crt:ro
     ports:
       - 8002:8000
     environment:
