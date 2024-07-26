@@ -7,5 +7,10 @@ class Metadata(BaseModel):
     capture_datetime: Optional[datetime | None] = None
 
 
-class MetadataSchema(Metadata):
+class MetadataInternal(Metadata):
+    dataset_type: str
+    error_type: str
+
+
+class MetadataSchema(MetadataInternal):
     id: int

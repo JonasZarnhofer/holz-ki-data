@@ -1,4 +1,4 @@
-CATEGORIES = [
+ERROR_CATEGORIES = [
     "ast",
     "ast_punkt",
     "ast_faul",
@@ -7,3 +7,5 @@ CATEGORIES = [
     "verfaerbung",
     "ungehobelt",
 ]
+
+DATASETS = ["train", "test"]
