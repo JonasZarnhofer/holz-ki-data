@@ -8,4 +8,8 @@ ERROR_CATEGORIES = [
     "ungehobelt",
 ]
 
-DATASETS = ["train", "test"]
+
+# Variables in order to avoid typos
+TRAIN = "train"
+TEST = "test"
+DATASETS = [TRAIN, TEST]

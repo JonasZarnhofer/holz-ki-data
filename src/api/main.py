@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from fastapi.middleware.cors import CORSMiddleware
-from api import image
+from api import image, label, dataset
 
 
 app = FastAPI()
@@ -19,3 +19,5 @@ app.add_middleware(
 
 # Routers
 app.include_router(image.router)
+app.include_router(label.router)
+app.include_router(dataset.router)
