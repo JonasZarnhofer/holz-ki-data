@@ -1,6 +1,6 @@
 from typing import Annotated
 from fastapi import APIRouter, HTTPException, UploadFile, status, Depends, Form, File
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 
 from api.model.metadata import (
     Metadata,
@@ -9,12 +9,14 @@ from api.model.metadata import (
     MetadataUnlabeled,
 )
 from api.model.page import Page
+from api.model.coco import Coco
 
 import crud
 import crud.image
 from crud.utils.streaming import stream_file
 
 from categories import DATASETS
+from db.utils.enum import DATASET_CATEGORIES_DB_NONE, ERROR_CATEGORIES_DB_NONE
 
 router = APIRouter(prefix="/image", tags=["Image"])
 
@@ -22,8 +24,9 @@ router = APIRouter(prefix="/image", tags=["Image"])
 @router.post("", status_code=201)
 async def add_image(
     image: Annotated[UploadFile, File()],
-    metadata: Annotated[MetadataUnlabeled, Form()],
+    metadata: Annotated[str, Form()],
 ):
+    metadata = MetadataUnlabeled.model_validate_json(metadata)
     if image.content_type != "image/jpeg":
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -35,8 +38,23 @@ async def add_image(
 
 @router.post("/{dataset_type}/{category}", status_code=201)
 async def add_image_with_category(
-    image: UploadFile, category: str, dataset_type: str, metadata: Metadata = Depends()
+    image: Annotated[UploadFile, File(...)],
+    metadata: Annotated[str, Form(...)],
+    dataset_type: str,
 ):
+    """
+    Add an image with category to the dataset.
+    Parameters:
+        image (UploadFile): The image file to be added.
+        metadata (str): The metadata associated with the image.
+        dataset_type (str): The dataset.
+    Raises:
+        HTTPException: If the dataset type is not valid or the file is not a jpeg image.
+    Returns:
+        None
+    """
+
+    metadata = Metadata.model_validate_json(metadata)
     if dataset_type not in DATASETS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -58,20 +76,16 @@ async def add_image_with_category(
         )
 
 
-@router.get("", status_code=200, response_class=StreamingResponse)
-async def get_unlabeld_image(page: Page = Depends()):
-    file = crud.image.unlabeld_zip(page)
+@router.get("/{dataset}", response_class=Response)
+async def get_train_dataset(dataset: str, page: Page = Depends()):
+    file = crud.image.dataset_zip(page, dataset)
+
     file.seek(0)
-
-    return StreamingResponse(content=stream_file(file), media_type="application/zip")
-
-
-@router.get("/train", response_class=StreamingResponse)
-async def get_train_dataset(page: Page = Depends()):
-    file = crud.image.train_dataset_zip(page)
-    file.seek(0)
-
-    return StreamingResponse(content=stream_file(file), media_type="application/zip")
+    return Response(
+        file.read(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={dataset}.zip"},
+    )
 
 
 @router.get("/train/{image}", response_class=StreamingResponse)
@@ -80,14 +94,6 @@ async def get_train_image(image: str):
     file.seek(0)
 
     return StreamingResponse(content=stream_file(file), media_type="image/jpeg")
-
-
-@router.get("/test", response_class=StreamingResponse)
-async def get_test_dataset(page: Page = Depends()):
-    file = crud.image.test_dataset_zip(page)
-    file.seek(0)
-
-    return StreamingResponse(content=stream_file(file), media_type="application/zip")
 
 
 @router.get("/test/{image}", response_class=StreamingResponse)

@@ -4,6 +4,7 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
+    Double,
     Boolean,
     ForeignKey,
     DateTime,
@@ -48,16 +49,16 @@ class SegmentationPointDB(Base):
     __tablename__ = "point"
 
     id = Column(Integer, primary_key=True)
-    x = Column(Integer, nullable=False)
-    y = Column(Integer, nullable=False)
+    x = Column(Double, nullable=False)
+    y = Column(Double, nullable=False)
     segmentation_id: Mapped[int] = mapped_column(
         ForeignKey("segmentation.id"), nullable=False
     )
 
-    def __init__(self, x, y, annotation_id):
+    def __init__(self, x, y, segmentation_id):
         self.x = x
         self.y = y
-        self.annotation_id = annotation_id
+        self.segmentation_id = segmentation_id
 
 
 class SegmentationDB(Base):
@@ -84,10 +85,10 @@ class BBoxDB(Base):
     __tablename__ = "bbox"
 
     id = Column(Integer, primary_key=True)
-    x = Column(Integer, nullable=False)
-    y = Column(Integer, nullable=False)
-    width = Column(Integer, nullable=False)
-    height = Column(Integer, nullable=False)
+    x = Column(Double, nullable=False)
+    y = Column(Double, nullable=False)
+    width = Column(Double, nullable=False)
+    height = Column(Double, nullable=False)
 
     annotation_id: Mapped[int] = mapped_column(
         ForeignKey("annotation.id"), nullable=False

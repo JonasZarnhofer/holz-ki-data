@@ -10,8 +10,10 @@ class BBox(BaseModel):
 
 
 class Annotation(BaseModel):
+    id: int
+    image_id: int
     category_id: int
-    bbox: BBox
+    bbox: List[float]
     segmentation: List[List[float]]
 
 

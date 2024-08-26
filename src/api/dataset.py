@@ -1,10 +1,10 @@
 from typing import Annotated, List
 
-from fastapi import APIRouter, HTTPException, UploadFile, status, Depends
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, HTTPException, UploadFile, Depends, status
+from fastapi.responses import StreamingResponse, FileResponse, Response
 
 from api.model.metadata import Metadata, MetadataInternal, MetadataSchema
-from api.model.dataset import ImageMetadata
+from api.model.coco import ImageMetadata
 from api.model.page import Page
 
 import crud
@@ -22,14 +22,15 @@ from categories import DATASETS, ERROR_CATEGORIES
 router = APIRouter(prefix="/dataset", tags=["Dataset"])
 
 
-@router.get("/{dataset}", response_model=List[ImageMetadata])
+@router.get("/{dataset}")
 async def get_dataset(dataset: str, size: int = 10):
     try:
-        dataset = crud.dataset.get_dataset(dataset, size)
+        file = crud.dataset.get_dataset_coco_file(dataset, size)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
 
-    return dataset
+    file.seek(0)
+    return Response(file.read(), media_type="application/json")
