@@ -27,6 +27,8 @@ from db.utils.enum import (
 )
 from categories import DATASETS
 
+from logger import logger
+
 
 from crud.utils.queries import get_error_id, get_dataset_id, create_annotations
 from crud.utils.rollback import crud_exception_handle
@@ -64,7 +66,7 @@ def label_with_coco(dataset: str, coco: Coco):
         label(image_name, dataset, annotations)
 
 
-async def label(image: str, dataset: Union[str, int], annotations: List[AnnotationDB]):
+def label(image: str, dataset: Union[str, int], annotations: List[AnnotationDB]):
     """
     Label an image with the given annotations.
     Args:
@@ -101,11 +103,14 @@ async def label(image: str, dataset: Union[str, int], annotations: List[Annotati
         raise ValueError(f"Image {image} does not exist.")
 
     metadata_db.dataset_category_id = dataset_id
+    session.flush()
 
     create_annotations(metadata_db, annotations)
+    print(annotations[0].segmentation)
+    session.commit()
 
 
-async def update_label(image: str, dataset: str):
+def update_label(image: str, dataset: str):
     """
     Update the label of an image in the database. Already annotaded images cannot be 'unlabeled', tying to do so will therefore raise an error.
     Args:

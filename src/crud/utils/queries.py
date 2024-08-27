@@ -12,6 +12,8 @@ from db.model import (
 from typing import List
 from api.model.annotations import Annotation
 
+from logger import logger
+
 
 def get_error_id(error: str) -> int:
     return session.query(ErrorCategoryDB).filter_by(name=error).first().id
@@ -30,13 +32,12 @@ def get_dataset(id: int) -> str:
 
 
 def create_annotations(metadata: MetadataDB, annotations: List[Annotation]):
-    session.begin()
     try:
         annotation_dbs = []
         for annotation in annotations:
             annotation_db = AnnotationDB(
                 metadata_id=metadata.id,
-                error_category_id=get_error_id(annotation.category),
+                error_category_id=annotation.category_id,
             )
             session.add(annotation_db)
             session.flush()
@@ -51,24 +52,27 @@ def create_annotations(metadata: MetadataDB, annotations: List[Annotation]):
             session.add(bbox_db)
 
             if annotation.segmentation is not None:
-                segmentation_db = SegmentationDB(
-                    annotation_id=annotation_db.id,
-                )
-                session.add(segmentation_db)
-                session.flush()
-
-                for point in annotation.segmentation:
-                    point_db = SegmentationPointDB(
-                        segmentation_id=segmentation_db.id,
-                        x=point[0],
-                        y=point[1],
+                for segmentation in annotation.segmentation:
+                    segmentation_db = SegmentationDB(
+                        annotation_id=annotation_db.id,
                     )
-                    session.add(point_db)
+                    session.add(segmentation_db)
+                    session.flush()
+
+                    print(f"seg: {segmentation}")
+                    for i in range(0, len(segmentation), 2):
+                        point_db = SegmentationPointDB(
+                            segmentation_id=segmentation_db.id,
+                            x=segmentation[i],
+                            y=segmentation[i + 1],
+                        )
+                        session.add(point_db)
 
             annotation_dbs.append(annotation_db)
 
-        session.commit()
-    except:
+        session.flush()
+    except Exception as e:
+        logger.error(f"Error creating annotations: {e}")
         session.rollback()
         return []
 

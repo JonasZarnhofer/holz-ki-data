@@ -23,9 +23,10 @@ from categories import DATASETS, ERROR_CATEGORIES
 router = APIRouter(prefix="/label", tags=["Labeling"])
 
 
-@router.post("/coco", status_code=201)
-def label_with_coco(coco_json: Annotated[UploadFile, File()]):
+@router.post("/{dataset}/coco", status_code=201)
+def label_with_coco(dataset: str, coco_json: Annotated[UploadFile, File()]):
     coco = Coco.model_validate_json(coco_json.file.read())
+    crud.label.label_with_coco(dataset, coco)
 
 
 @router.post("/{image}", status_code=201)

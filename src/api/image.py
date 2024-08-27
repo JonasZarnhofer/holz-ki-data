@@ -21,12 +21,25 @@ from db.utils.enum import DATASET_CATEGORIES_DB_NONE, ERROR_CATEGORIES_DB_NONE
 router = APIRouter(prefix="/image", tags=["Image"])
 
 
+# Due to limitations of FastAPI regarding Pydantic models in multipart form data,
+# the metadata is passed as query parameters instead of form data.
+# This way swagger UI can document the endpoint correctly.
 @router.post("", status_code=201)
 async def add_image(
     image: Annotated[UploadFile, File()],
-    metadata: Annotated[str, Form()],
+    metadata: MetadataUnlabeled = Depends(),
 ):
-    metadata = MetadataUnlabeled.model_validate_json(metadata)
+    """
+    Add an image to the system.
+    Parameters:
+    - image: Annotated[UploadFile, File()]: The image file to be added.
+    - metadata: MetadataUnlabeled: Additional metadata for the image.
+    Raises:
+    - HTTPException: If the file is not a jpeg image.
+    Returns:
+    - None
+    """
+
     if image.content_type != "image/jpeg":
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,

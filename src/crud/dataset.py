@@ -2,7 +2,7 @@ from tempfile import SpooledTemporaryFile
 from typing import List
 from api.model.coco import ImageMetadata
 from api.model.annotations import Annotation
-from api.model.coco import Coco
+from api.model.coco import Coco, Category
 
 from db.session import session
 from db.model import (
@@ -30,6 +30,7 @@ def _get_coco(dataset: str, size: int = 0) -> Coco:
     else:
         images = session.query(ImageDB).limit(size).all()
 
+    images_coco = []
     for image in images:
         coco_set = (
             session.query(ImageDB, MetadataDB).filter(
@@ -40,7 +41,6 @@ def _get_coco(dataset: str, size: int = 0) -> Coco:
             )
         ).all()
 
-        images_coco = []
         annotations_coco = []
         for image, metadata in coco_set:
             images_coco.append(
@@ -48,7 +48,7 @@ def _get_coco(dataset: str, size: int = 0) -> Coco:
                     id=image.id,
                     width=metadata.width,
                     height=metadata.height,
-                    file_name=image.image_hash,
+                    file_name=image.image_hash + ".jpg",
                 )
             )
 
@@ -96,11 +96,15 @@ def _get_coco(dataset: str, size: int = 0) -> Coco:
                     )
                 )
 
-    coco = Coco(images=images_coco, annotations=annotations_coco)
+    categories_db = session.query(ErrorCategoryDB).all()
+    categories_coco = [
+        Category(id=category_db.id, name=category_db.name)
+        for category_db in categories_db
+    ]
 
-    print(coco)
-
-    print(f"Images: {images}")
+    coco = Coco(
+        images=images_coco, annotations=annotations_coco, categories=categories_coco
+    )
 
     return coco
 
